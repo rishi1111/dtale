@@ -18,6 +18,7 @@ import { Rename } from "./Rename";
 import { ColumnAnalysis } from "./analysis/ColumnAnalysis";
 import { Charts } from "./charts/Charts";
 import { CreateColumn } from "./create/CreateColumn";
+import { CreateReplacement } from "./replacement/CreateReplacement";
 import { Reshape } from "./reshape/Reshape";
 
 class ReactPopup extends React.Component {
@@ -124,6 +125,16 @@ class ReactPopup extends React.Component {
           </ModalTitle>
         );
         body = <Rename {...this.props} />;
+        break;
+      case "replacement":
+        modalTitle = (
+          <ModalTitle>
+            <i className="fas fa-backspace" />
+            {" Replacements for "}
+            <strong>{chartData.selectedCol}</strong>
+          </ModalTitle>
+        );
+        body = <CreateReplacement {...this.props} />;
         break;
       case "error":
         modalTitle = (

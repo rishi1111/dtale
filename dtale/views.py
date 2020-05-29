@@ -21,6 +21,7 @@ from dtale.charts.utils import build_base_chart
 from dtale.cli.clickutils import retrieve_meta_info_and_version
 from dtale.column_builders import ColumnBuilder
 from dtale.column_filters import ColumnFilter
+from dtale.column_replacements import ColumnReplacement
 from dtale.dash_application.charts import (build_raw_chart, chart_url_params,
                                            chart_url_querystring, export_chart,
                                            export_chart_data, url_encode_func)
@@ -947,6 +948,62 @@ def reshape_data(data_id):
         curr_settings = global_state.get_settings(instance._data_id)
         global_state.set_settings(instance._data_id, dict_merge(curr_settings, dict(startup_code=builder.build_code())))
         return jsonify(success=True, data_id=instance._data_id)
+    except BaseException as e:
+        return jsonify_error(e)
+
+
+@dtale.route('/build-replacement/<data_id>')
+def build_replacement(data_id):
+    """
+    :class:`flask:flask.Flask` route to handle the replacement of specific values within a column in a dataframe. Some
+    of the operations the are available are:
+     - spaces: replace values consisting of only spaces with a specific value
+     - fillna: replace nan values with a specific value or aggregation
+     - strings: replace values which contain a specific character or string (case-insensitive or not) with a
+                       specific value
+     - imputer: replace nan values using sklearn imputers iterative, knn or simple
+
+    :param data_id: integer string identifier for a D-Tale process's data
+    :type data_id: str
+    :param col: string from flask.request.args['col'] of the column to perform replacements upon
+    :param type: string from flask.request.args['type'] of the type of replacement to perform
+                 (spaces/fillna/strings/imputer)
+    :param cfg: dict from flask.request.args['cfg'] of how to calculate the replacements
+    :return: JSON {success: True/False}
+    """
+    try:
+        # name = get_str_arg(request, 'name')
+        # if not name:
+        #     raise Exception("'name' is required for new column!")
+        # name = str(name)
+        data = global_state.get_data(data_id)
+        # if name in data.columns:
+        #     raise Exception("A column named '{}' already exists!".format(name))
+        col = get_str_arg(request, 'col')
+        replacement_type = get_str_arg(request, 'type')
+        cfg = json.loads(get_str_arg(request, 'cfg'))
+
+        builder = ColumnReplacement(data_id, col, replacement_type, cfg)
+        data.loc[:, col] = builder.build_replacements()
+        dtype = find_dtype(data[col])
+        data_ranges = {}
+        if classify_type(dtype) == 'F' and not data[col].isnull().all():
+            try:
+                data_ranges[col] = data[[col]].agg(['min', 'max']).to_dict()[col]
+            except ValueError:
+                pass
+        # dtype_f = dtype_formatter(data, {col: dtype}, data_ranges)
+        global_state.set_data(data_id, data)
+        curr_dtypes = global_state.get_dtypes(data_id)
+        curr_col_dtype = next((dtype for dtype in curr_dtypes if dtype['name'] == col), None)
+        curr_col_dtype = dict_merge(curr_col_dtype, data_ranges)
+        # curr_dtypes.append(dtype_f(len(curr_dtypes), name))
+        curr_dtypes = [curr_col_dtype if dtype['name'] == col else dtype for dtype in curr_dtypes]
+        global_state.set_dtypes(data_id, curr_dtypes)
+        curr_history = global_state.get_history(data_id) or []
+        curr_history += [builder.build_code()]
+        global_state.set_history(data_id, curr_history)
+        return jsonify(success=True)
     except BaseException as e:
         return jsonify_error(e)
 

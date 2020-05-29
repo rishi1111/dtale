@@ -240,6 +240,14 @@ class ReactColumnMenu extends React.Component {
           </li>
           <li>
             <span className="toggler-action">
+              <button className="btn btn-plain" onClick={openPopup("replacement", 400, 770)}>
+                <i className="fas fa-backspace mr-3" />
+                <span className="font-weight-bold">Replacements</span>
+              </button>
+            </span>
+          </li>
+          <li>
+            <span className="toggler-action">
               <button className="btn btn-plain" onClick={openDescribe}>
                 <i className="ico-view-column" />
                 <span className="font-weight-bold">Describe</span>

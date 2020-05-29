@@ -70,6 +70,7 @@ setup(
         "itsdangerous",
         "pandas",
         "requests",
+        "scikit-learn >= '0.21.0",
         "scipy",
         "six"
     ],
